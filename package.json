@@ -1,0 +1,26 @@
+{
+  "name": "omnibot",
+  "version": "1.0.0",
+  "description": "OmniBot - Discord Bot buatan Mash dengan fitur Moderation, Utility, Welcome, VIP, dan lainnya",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "removeExpiredVip": "node removeExpiredVip.js"
+  },
+  "keywords": [
+    "discord",
+    "bot",
+    "moderation",
+    "utility",
+    "welcome",
+    "vip"
+  ],
+  "author": "Mash",
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^14.7.1",
+    "dotenv": "^16.0.3",
+    "node-fetch": "^2.6.1",
+    "canvas": "^2.9.3"
+  }
+}
