@@ -12,38 +12,58 @@ const client = new Client({
   ]
 });
 
-// 1) Load events from the /events folder
+// 1) Load events from the /events folder (fix missing folder)
 const eventsPath = path.join(__dirname, 'events');
+if (!fs.existsSync(eventsPath)) {
+  console.log("⚠️ Folder 'events' tidak ditemukan, membuat folder...");
+  fs.mkdirSync(eventsPath);
+}
+
 fs.readdirSync(eventsPath).forEach(file => {
   if (file.endsWith('.js')) {
-    const event = require(path.join(eventsPath, file));
-    // If the event file exports an object with "name" and "execute", we register it
-    if (event.name) {
-      client.on(event.name, (...args) => event.execute(...args, client));
+    try {
+      const event = require(path.join(eventsPath, file));
+      if (event.name) {
+        client.on(event.name, (...args) => event.execute(...args, client));
+        console.log(`✅ Event '${event.name}' loaded.`);
+      }
+    } catch (error) {
+      console.error(`❌ Gagal memuat event ${file}:`, error);
     }
   }
 });
 
-// 2) Load commands from the /commands folder (including subfolders)
+// 2) Load commands from the /commands folder (fix missing folder)
 client.commands = new Collection();
 const commandsPath = path.join(__dirname, 'commands');
+
+if (!fs.existsSync(commandsPath)) {
+  console.log("⚠️ Folder 'commands' tidak ditemukan, membuat folder...");
+  fs.mkdirSync(commandsPath);
+}
+
 const commandFolders = fs.readdirSync(commandsPath);
 
 for (const folder of commandFolders) {
   const folderPath = path.join(commandsPath, folder);
-  // If it's a directory, load all .js files inside it
   if (fs.statSync(folderPath).isDirectory()) {
     const commandFiles = fs.readdirSync(folderPath).filter(file => file.endsWith('.js'));
     for (const file of commandFiles) {
-      const command = require(path.join(folderPath, file));
-      // We assume each command exports { data: SlashCommandBuilder, execute(interaction) }
-      client.commands.set(command.data.name, command);
+      try {
+        const command = require(path.join(folderPath, file));
+        client.commands.set(command.data.name, command);
+        console.log(`✅ Command '${command.data.name}' loaded.`);
+      } catch (error) {
+        console.error(`❌ Gagal memuat command ${file}:`, error);
+      }
     }
-  } else {
-    // If it's a single file in /commands (no subfolder)
-    if (folder.endsWith('.js')) {
+  } else if (folder.endsWith('.js')) {
+    try {
       const command = require(path.join(commandsPath, folder));
       client.commands.set(command.data.name, command);
+      console.log(`✅ Command '${command.data.name}' loaded.`);
+    } catch (error) {
+      console.error(`❌ Gagal memuat command ${folder}:`, error);
     }
   }
 }
@@ -55,10 +75,9 @@ client.on('interactionCreate', async interaction => {
   if (!command) return;
 
   try {
-    // Some commands might need (interaction, client)
     await command.execute(interaction, client);
   } catch (error) {
-    console.error(error);
+    console.error(`❌ Error saat menjalankan command '${interaction.commandName}':`, error);
     await interaction.reply({ content: '❌ An error occurred while executing the command!', ephemeral: true });
   }
 });
@@ -69,4 +88,6 @@ client.once('ready', () => {
 });
 
 // 5) Login with token from .env
-client.login(process.env.TOKEN);
+client.login(process.env.TOKEN).catch(error => {
+  console.error("❌ Gagal login! Periksa TOKEN di file .env", error);
+});
